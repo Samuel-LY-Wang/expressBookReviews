@@ -7,8 +7,26 @@ const public_users = express.Router();
 
 
 public_users.post("/register", (req,res) => {
-  //Write your code here
-  return res.status(300).json({message: "Yet to be implemented"});
+    let uname=req.body.username;
+    let pword=req.body.password;
+    if (!uname) {
+        return res.status(400).json({message: "Please enter your username"})
+    }
+    if (!pword) {
+        return res.status(400).json({message: "Please enter your password"})
+    }
+    // check database of users
+    const numusers=users.length;
+    for (let i=0; i<numusers; i++) {
+        let user=users[i];
+        if (user.username == uname) {
+            return res.status(400).json({message: "This user already exists!"})
+        }
+    }
+    let new_user={username: uname, password: pword};
+    users.push(new_user);
+    //Write your code here
+    return res.status(300).json({message: "Successfully registered!"});
 });
 
 // Get the book list available in the shop
@@ -100,7 +118,8 @@ public_users.get('/review',async function (req, res) {
             // console.log({title: book.title, author: book.authors[0].name});
             for (let i=1; i<=10; i++) {
                 const check_book=books[i];
-                if (book.title==check_book.title && book.authors[0].name==check_book.author) {
+                const author = book.authors[0].name || "Unknown";
+                if (book.title==check_book.title && author==check_book.author) {
                     return res.status(300).json({reviews: check_book.reviews});
                 }
             }
