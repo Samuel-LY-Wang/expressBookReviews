@@ -1,4 +1,6 @@
 const express = require('express');
+const axios = require('axios');
+const session = require('express-session');
 const jwt = require('jsonwebtoken');
 let books = require("./booksdb.js");
 const regd_users = express.Router();
@@ -10,8 +12,6 @@ let users = [
     {"username": "user4", "password": "pass4"},
     {"username": "user5", "password": "pass5"},
 ];
-
-let SECRET_KEY="This_is_secret_key" // insecure as this is a test app
 
 const isValid = (username)=>{
     let numusers=users.length;
@@ -47,16 +47,73 @@ regd_users.post("/login", (req,res) => {
     return res.status(400).json({message: "This is not a valid user!"});
   }
   if (authenticatedUser(uname, pword)) {
-    const token=jwt.sign({username: uname}, SECRET_KEY, {expiresIn: '1h'});
-    return res.status(300).json({message: "Successfully logged in!", token});
+    if (req.session.user) {
+        return res.status(300).json({message: "Already logged in!"});
+    }
+    let token = jwt.sign({ username: uname }, "access", { expiresIn: "1h" });
+    req.session.authorization = { accessToken: token }; // <-- Important
+    req.session.user=uname;
+    // console.log(req.session.user);
+    return res.status(300).json({message: "Successfully logged in!"});
   }
   return res.status(400).json({message: "Username or Password was incorrect"});
 });
 
 // Add a book review
-regd_users.put("/auth/review/:isbn", (req, res) => {
-  //Write your code here
-  return res.status(300).json({message: "Yet to be implemented"});
+regd_users.put("/auth/review", async (req, res) => {
+    // get the book from the ISBN
+    const isbn=req.query.isbn;
+    console.log(req.session.user);
+    if (!req.session.user) {
+        return res.status(403).json({message: "User not logged in!"})
+    }
+    var req_book=null;
+    try {
+        let response=await axios.get(
+            `https://openlibrary.org/api/books`,
+            {
+                params: {
+                    bibkeys: `ISBN:${isbn}`,
+                    format: 'json',
+                    jscmd: 'data'
+                }
+            }
+        );
+        const book=response.data[`ISBN:${isbn}`];
+        if (book) {
+            // console.log({title: book.title, author: book.authors[0].name});
+            for (let i=1; i<=10; i++) {
+                const check_book=books[i];
+                const author = book.authors[0].name || "Unknown";
+                if (book.title==check_book.title && author==check_book.author) {
+                    req_book=check_book;
+                }
+            }
+            if (!req_book) {
+                return res.status(404).json({message: "Book not found in database!"});
+            }
+        }
+        else {
+            return res.status(404).json({message: "Book not found!"});
+        }
+    }
+    catch (error) {
+        console.log(error);
+        return res.status(500).json({message: error})
+    }
+    let reviews=req_book.reviews;
+    let new_review=req.body.review;
+    if (!new_review) {
+        return res.status(400).json({message: "Please write a review!"});
+    }
+    if (req.session.user in reviews) {
+        reviews[req.session.user]=new_review;
+        return res.status(300).json({message: "Review successfully updated!"});
+    }
+    else {
+        reviews[req.session.user]=new_review;
+        return res.status(300).json({message: "Review successfully added!"});
+    }
 });
 
 module.exports.authenticated = regd_users;
