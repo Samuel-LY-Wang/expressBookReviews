@@ -11,17 +11,4 @@ let books = {
       10: {"author": "Samuel Beckett","title": "Molloy, Malone Dies, The Unnamable, the trilogy", "reviews": {} }
 }
 
-let ISBNs = {
-    1: {"isbn": "9780385474542"},
-    2: {"isbn": "9780143039525"},
-    3: {"isbn": "9780451208637"},
-    4: {"isbn": "9780140441000"},
-    5: {"isbn": "9780300163766"},
-    6: {"isbn": "9781408827765"},
-    7: {"isbn": "9780140447699"},
-    8: {"isbn": "9780141439518"},
-    9: {"isbn": "9780199538751"},
-    10: {"isbn": "9780330256643"}
-}
-
 module.exports=books;
